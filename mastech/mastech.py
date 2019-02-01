@@ -5,7 +5,6 @@ from binascii import hexlify
 
 import pendulum
 from bluepy import btle
-from bitstring import BitArray
 
 
 def _get_bit(src, index):
@@ -44,14 +43,14 @@ class Mastech(threading.Thread):
                 if _get_bit(data[11], 7):
                     value *= -1
 
-                value_max = _get_bit(data[11], 3)
-                value_min = _get_bit(data[11], 2)
-                value_minmax = _get_bit(data[11], 1)
-                auto_range = _get_bit(data[11], 0)
+                # value_max = _get_bit(data[11], 3)
+                # value_min = _get_bit(data[11], 2)
+                # value_minmax = _get_bit(data[11], 1)
+                # auto_range = _get_bit(data[11], 0)
 
-                low_battery = _get_bit(data[12], 7)
-                diode = _get_bit(data[12], 6)
-                speaker = _get_bit(data[12], 5)
+                # low_battery = _get_bit(data[12], 7)
+                # diode = _get_bit(data[12], 6)
+                # speaker = _get_bit(data[12], 5)
                 f5n = _get_bit(data[12], 4)
                 u1 = _get_bit(data[12], 3)
                 m1 = _get_bit(data[12], 2)
@@ -67,14 +66,14 @@ class Mastech(threading.Thread):
                 Hz = _get_bit(data[13], 1)
                 percent = _get_bit(data[13], 0)
 
-                hold = _get_bit(data[14], 7)
-                ncv_non_contact_voltage_detection = _get_bit(data[14], 6)
+                # hold = _get_bit(data[14], 7)
+                # ncv_non_contact_voltage_detection = _get_bit(data[14], 6)
                 C0 = _get_bit(data[14], 5)
                 F0 = _get_bit(data[14], 4)
-                usb = _get_bit(data[14], 3)
-                REL = _get_bit(data[14], 2)
-                apo = _get_bit(data[14], 1)
-                hFE = _get_bit(data[14], 0)
+                # usb = _get_bit(data[14], 3)
+                # REL = _get_bit(data[14], 2)
+                # apo = _get_bit(data[14], 1)
+                # hFE = _get_bit(data[14], 0)
 
                 unit = ''
 
@@ -97,6 +96,8 @@ class Mastech(threading.Thread):
                     unit += 'dc'
                 if ac:
                     unit += 'ac'
+                if f2F:
+                    unit += 'H'
                 if res:
                     unit += 'Ω'
                 if Hz:
