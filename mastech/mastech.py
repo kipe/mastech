@@ -3,11 +3,6 @@ import logging
 import threading
 from binascii import hexlify
 
-try:
-    from queue import Queue, Full
-except ImportError:
-    from Queue import Queue, Full
-
 import pendulum
 from bluepy import btle
 from bitstring import BitArray
@@ -113,32 +108,17 @@ class Mastech(threading.Thread):
                 if percent:
                     unit += '%'
 
-                # print(value, unit)
-                try:
-                    self.mastech.log.debug(
-                        '%s - Got measurement %.3f %s' % (
-                            timestamp.isoformat(),
-                            value,
-                            unit
-                        )
-                    )
-                    self.mastech.measurement_queue.put(
-                        (timestamp, value, unit),
-                        block=False
-                    )
-                except Full:
-                    self.mastech.log.error('Measurement queue is full')
-
+                self.mastech.callback(timestamp, value, unit)
             except:
                 self.mastech.log.exception('Exception in parsing message')
 
-    def __init__(self, address, interface_index=0):
+    def __init__(self, address, callback=None, interface_index=0):
         super(Mastech, self).__init__()
         self.address = address
         self.interface_index = 0
+        self.callback_function = callback
         self.__stop = threading.Event()
         self.log = logging.getLogger(self.__class__.__name__)
-        self.measurement_queue = Queue()
 
     def run(self):
         self.log.info('Starting to listen Mastech meter %s' % (self.address))
@@ -158,6 +138,19 @@ class Mastech(threading.Thread):
 
     def stop(self):
         self.__stop.set()
+
+    def callback(self, timestamp, value, unit):
+        if self.callback_function:
+            self.callback_function(timestamp, value, unit)
+            return
+
+        self.log.debug(
+            '%s - Got measurement %.3f %s' % (
+                timestamp.isoformat(),
+                value,
+                unit
+            )
+        )
 
     @classmethod
     def discover(cls, interface_index=0, timeout=10):
