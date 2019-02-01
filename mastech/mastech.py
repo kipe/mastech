@@ -18,6 +18,7 @@ def _get_bit(src, index):
 
 
 class Mastech(threading.Thread):
+    # MEASUREMENT_CHARACTERISTIC_UUID = '0000ffb2-0000-1000-8000-00805f9b34fb'
     MEASUREMENT_CHARACTERISTIC = 0x14
     MEASUREMENT_NOTIFICATION_DESCRIPTOR = 0x16
 
@@ -131,16 +132,17 @@ class Mastech(threading.Thread):
             except:
                 self.mastech.log.exception('Exception in parsing message')
 
-    def __init__(self, address):
+    def __init__(self, address, interface_index=0):
         super(Mastech, self).__init__()
         self.address = address
+        self.interface_index = 0
         self.__stop = threading.Event()
         self.log = logging.getLogger(self.__class__.__name__)
         self.measurement_queue = Queue()
 
     def run(self):
         self.log.info('Starting to listen Mastech meter %s' % (self.address))
-        peripheral = btle.Peripheral(self.address)
+        peripheral = btle.Peripheral(self.address, iface=self.interface_index)
         peripheral.setDelegate(self.Delegate(self))
         peripheral.writeCharacteristic(
             self.MEASUREMENT_NOTIFICATION_DESCRIPTOR,
@@ -157,17 +159,8 @@ class Mastech(threading.Thread):
     def stop(self):
         self.__stop.set()
 
-if __name__ == '__main__':
-    import time
-    logging.basicConfig(level=logging.DEBUG)
-
-    m = Mastech('04:A3:16:5A:C5:BB')
-    m.start()
-
-    while True:
-        try:
-            time.sleep(5)
-        except:
-            break
-
-    m.stop()
+    @classmethod
+    def discover(cls, interface_index=0, timeout=10):
+        for device in btle.Scanner(interface_index).scan(timeout=timeout):
+            if device.getValueText(9) == 'bde spp dev':
+                yield device.addr
