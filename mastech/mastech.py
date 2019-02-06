@@ -2,6 +2,7 @@ from __future__ import unicode_literals
 import logging
 import threading
 from binascii import hexlify
+from decimal import Decimal
 
 import pendulum
 from bluepy import btle
@@ -17,9 +18,10 @@ class Mastech(threading.Thread):
     MEASUREMENT_NOTIFICATION_DESCRIPTOR = 0x16
 
     class Delegate(btle.DefaultDelegate):
-        def __init__(self, mastech):
+        def __init__(self, mastech, use_decimal=False):
             super(Mastech.Delegate, self).__init__()
             self.mastech = mastech
+            self.use_decimal = use_decimal
 
         def handleNotification(self, cHandle, data):
             timestamp = pendulum.now()
@@ -36,9 +38,20 @@ class Mastech(threading.Thread):
                         value.insert(-2, '.')
                     if _get_bit(data[11], 4):
                         value.insert(-1, '.')
-                    value = float(''.join(value))
+
+                    # Join character array to form a complete string
+                    # representation of the value
+                    value = ''.join(value)
+
+                    if self.use_decimal:
+                        value = Decimal(value)
+                    else:
+                        value = float(value)
                 else:
-                    value = float('inf')
+                    if self.use_decimal:
+                        value = Decimal('Infinity')
+                    else:
+                        float('inf')
 
                 if _get_bit(data[11], 7):
                     value *= -1
@@ -113,18 +126,24 @@ class Mastech(threading.Thread):
             except:
                 self.mastech.log.exception('Exception in parsing message')
 
-    def __init__(self, address, callback=None, interface_index=0):
+    def __init__(self,
+                 address,
+                 callback=None,
+                 interface_index=0,
+                 use_decimal=False):
         super(Mastech, self).__init__()
         self.address = address
         self.interface_index = 0
         self.callback_function = callback
+        self.use_decimal = use_decimal
         self.__stop = threading.Event()
         self.log = logging.getLogger(self.__class__.__name__)
 
     def run(self):
         self.log.info('Starting to listen Mastech meter %s' % (self.address))
         peripheral = btle.Peripheral(self.address, iface=self.interface_index)
-        peripheral.setDelegate(self.Delegate(self))
+        peripheral.setDelegate(
+            self.Delegate(self, use_decimal=self.use_decimal))
         peripheral.writeCharacteristic(
             self.MEASUREMENT_NOTIFICATION_DESCRIPTOR,
             bytearray([0x01, 0x00])
