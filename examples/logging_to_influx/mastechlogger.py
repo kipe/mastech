@@ -60,7 +60,7 @@ if __name__ == '__main__':
     mastechlogger = MastechLogger(device_address)
     mastechlogger.start()
 
-    while True:
+    while mastechlogger.is_alive():
         time.sleep(1)
 
     mastechlogger.stop()
